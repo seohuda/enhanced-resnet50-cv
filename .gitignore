@@ -35,3 +35,4 @@ wandb/
 
 .DS_Store
 Thumbs.db
+generate_comparison_plot.py

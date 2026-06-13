@@ -38,7 +38,9 @@ The training loop uses a Soft Label Cross-Entropy Loss to handle the mixed label
 | SE-ResNet50 (Ours) | ~76.5% | ~93.5% | 26.2M |
 | SE-ResNet50 + CutMix (Ours) | ~78.5% | ~94.5% | 26.2M |
 
-> Note: Results are approximate and may vary depending on training environment and hyperparameters.
+### Training Curves
+
+![Performance Comparison](assets/performance_comparison.png)
 
 ## Architecture
 
@@ -90,6 +92,7 @@ Key hyperparameters can be modified in `train.py`:
 enhanced-resnet50-cv/
 ├── model.py          # SE-ResNet50 architecture definition
 ├── train.py          # Training pipeline with CutMix
+├── assets/           # Training visualization results
 ├── .gitignore        # Git ignore rules
 └── README.md         # Project documentation
 ```
