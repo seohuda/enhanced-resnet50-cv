@@ -1,5 +1,13 @@
 # Enhanced ResNet50 with SE-Block and CutMix for CIFAR-100
 
+[![한국어](https://img.shields.io/badge/%ED%95%9C%EA%B5%AD%EC%96%B4%EB%A1%9C%20%EC%9D%BD%EA%B8%B0-blue)](README_KR.md)
+
+![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?logo=pytorch&logoColor=white)
+![TorchVision](https://img.shields.io/badge/TorchVision-0.15%2B-EE4C2C?logo=pytorch&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-1.24%2B-013243?logo=numpy&logoColor=white)
+![Matplotlib](https://img.shields.io/badge/Matplotlib-3.7%2B-11557C?logo=python&logoColor=white)
+
 ## Project Overview
 
 This project enhances the standard ResNet50 architecture for image classification on CIFAR-100 by applying two key improvement strategies:
@@ -59,7 +67,7 @@ Input (3x32x32)
 ### Requirements
 
 ```bash
-pip install torch torchvision matplotlib numpy
+pip install -r requirements.txt
 ```
 
 ### Training
@@ -73,6 +81,12 @@ The script will:
 - Train SE-ResNet50 with CutMix augmentation for 50 epochs
 - Save the best model checkpoint as `best_model.pth`
 - Generate training curves as `training_curves.png`
+
+### Inference
+
+```bash
+python inference.py --image <image_path> --checkpoint best_model.pth --top_k 5
+```
 
 ### Configuration
 
@@ -92,9 +106,12 @@ Key hyperparameters can be modified in `train.py`:
 enhanced-resnet50-cv/
 ├── model.py          # SE-ResNet50 architecture definition
 ├── train.py          # Training pipeline with CutMix
+├── inference.py      # Single image inference script
+├── requirements.txt  # Package dependencies
 ├── assets/           # Training visualization results
 ├── .gitignore        # Git ignore rules
-└── README.md         # Project documentation
+├── README.md         # Project documentation (English)
+└── README_KR.md      # Project documentation (Korean)
 ```
 
 ## References

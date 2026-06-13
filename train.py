@@ -81,7 +81,7 @@ def get_dataloaders(batch_size=128):
     return train_loader, test_loader
 
 
-def train_one_epoch(model, train_loader, optimizer, device, cutmix_prob=0.5, alpha=1.0):
+def train_one_epoch(model, train_loader, optimizer, device, cutmix_prob=0.5, alpha=1.0, max_grad_norm=1.0):
     model.train()
     running_loss = 0.0
     correct = 0
@@ -106,6 +106,7 @@ def train_one_epoch(model, train_loader, optimizer, device, cutmix_prob=0.5, alp
             lam = 1.0
 
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
         optimizer.step()
 
         running_loss += loss.item() * inputs.size(0)
@@ -122,7 +123,8 @@ def train_one_epoch(model, train_loader, optimizer, device, cutmix_prob=0.5, alp
 def evaluate(model, test_loader, device):
     model.eval()
     running_loss = 0.0
-    correct = 0
+    correct_top1 = 0
+    correct_top5 = 0
     total = 0
     criterion = nn.CrossEntropyLoss()
 
@@ -135,11 +137,15 @@ def evaluate(model, test_loader, device):
             running_loss += loss.item() * inputs.size(0)
             _, predicted = outputs.max(1)
             total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+            correct_top1 += predicted.eq(targets).sum().item()
+
+            _, top5_pred = outputs.topk(5, dim=1, largest=True, sorted=True)
+            correct_top5 += top5_pred.eq(targets.view(-1, 1).expand_as(top5_pred)).sum().item()
 
     epoch_loss = running_loss / total
-    epoch_acc = 100.0 * correct / total
-    return epoch_loss, epoch_acc
+    top1_acc = 100.0 * correct_top1 / total
+    top5_acc = 100.0 * correct_top5 / total
+    return epoch_loss, top1_acc, top5_acc
 
 
 def plot_results(train_losses, val_losses, train_accs, val_accs):
@@ -187,30 +193,31 @@ def main():
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
 
     train_losses, val_losses = [], []
-    train_accs, val_accs = [], []
+    train_accs, val_accs, val_top5_accs = [], [], []
     best_acc = 0.0
 
     for epoch in range(1, num_epochs + 1):
         train_loss, train_acc = train_one_epoch(
             model, train_loader, optimizer, device, cutmix_prob, cutmix_alpha
         )
-        val_loss, val_acc = evaluate(model, test_loader, device)
+        val_loss, val_acc, val_top5 = evaluate(model, test_loader, device)
         scheduler.step()
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         train_accs.append(train_acc)
         val_accs.append(val_acc)
+        val_top5_accs.append(val_top5)
 
         print(f"Epoch [{epoch}/{num_epochs}] "
               f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | "
-              f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
+              f"Val Loss: {val_loss:.4f} | Val Acc(Top-1): {val_acc:.2f}% | Val Acc(Top-5): {val_top5:.2f}%")
 
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), 'best_model.pth')
 
-    print(f"\nBest Validation Accuracy: {best_acc:.2f}%")
+    print(f"\nBest Validation Accuracy (Top-1): {best_acc:.2f}%")
 
     plot_results(train_losses, val_losses, train_accs, val_accs)
     print("Training curves saved to training_curves.png")
