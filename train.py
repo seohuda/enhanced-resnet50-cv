@@ -146,7 +146,12 @@ def main():
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
 
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
+    warmup_epochs = 5
+    warmup_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=warmup_epochs)
+    cosine_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs - warmup_epochs)
+    scheduler = optim.lr_scheduler.SequentialLR(
+        optimizer, schedulers=[warmup_scheduler, cosine_scheduler], milestones=[warmup_epochs]
+    )
 
     train_losses, val_losses = [], []
     train_accs, val_accs, val_top5_accs = [], [], []
