@@ -77,6 +77,7 @@ python train.py
 실행 시:
 - CIFAR-100 데이터셋 자동 다운로드
 - SE-ResNet50 + CutMix 증강으로 50 에포크 학습
+- Learning Rate Warmup (5 에포크) 후 Cosine Annealing 적용
 - 최고 성능 모델을 `best_model.pth`로 저장
 - 학습 곡선을 `training_curves.png`로 생성
 
@@ -104,6 +105,7 @@ python inference.py --image <이미지 경로> --checkpoint best_model.pth --top
 enhanced-resnet50-cv/
 ├── model.py          # SE-ResNet50 아키텍처 정의
 ├── train.py          # CutMix 포함 학습 파이프라인
+├── utils.py          # CutMix 유틸리티 및 손실 함수
 ├── inference.py      # 단일 이미지 추론 스크립트
 ├── requirements.txt  # 의존성 패키지 목록
 ├── assets/           # 학습 시각화 결과

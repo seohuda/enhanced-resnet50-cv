@@ -79,6 +79,7 @@ python train.py
 The script will:
 - Automatically download CIFAR-100 dataset
 - Train SE-ResNet50 with CutMix augmentation for 50 epochs
+- Apply learning rate warmup (5 epochs) followed by cosine annealing
 - Save the best model checkpoint as `best_model.pth`
 - Generate training curves as `training_curves.png`
 
@@ -106,6 +107,7 @@ Key hyperparameters can be modified in `train.py`:
 enhanced-resnet50-cv/
 ├── model.py          # SE-ResNet50 architecture definition
 ├── train.py          # Training pipeline with CutMix
+├── utils.py          # CutMix utilities and loss functions
 ├── inference.py      # Single image inference script
 ├── requirements.txt  # Package dependencies
 ├── assets/           # Training visualization results
