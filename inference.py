@@ -3,7 +3,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 import argparse
 import os
-from model import build_se_resnet50
+from model import build_model
 
 
 CIFAR100_CLASSES = [
@@ -25,9 +25,16 @@ CIFAR100_CLASSES = [
 ]
 
 
-def load_model(checkpoint_path, device):
-    model = build_se_resnet50(num_classes=100)
-    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+def load_model(checkpoint_path, device, model_name="se_resnet50"):
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        config = checkpoint.get("config", {})
+        model_name = config.get("model", model_name)
+        model = build_model(model_name, num_classes=100)
+        model.load_state_dict(checkpoint["model_state_dict"])
+    else:
+        model = build_model(model_name, num_classes=100)
+        model.load_state_dict(checkpoint)
     model.to(device)
     model.eval()
     return model
@@ -60,9 +67,11 @@ def predict(model, image_tensor, device, top_k=5):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='SE-ResNet50 Inference on CIFAR-100')
+    parser = argparse.ArgumentParser(description='ResNet50/SE-ResNet50 Inference on CIFAR-100')
     parser.add_argument('--image', type=str, required=True, help='Path to input image')
     parser.add_argument('--checkpoint', type=str, default='best_model.pth', help='Path to model checkpoint')
+    parser.add_argument('--model', type=str, default='se_resnet50',
+                        choices=['resnet50', 'se_resnet50'], help='Model architecture (auto-detected from checkpoint)')
     parser.add_argument('--top_k', type=int, default=5, help='Number of top predictions to show')
     args = parser.parse_args()
 
@@ -77,7 +86,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    model = load_model(args.checkpoint, device)
+    model = load_model(args.checkpoint, device, args.model)
     image_tensor = preprocess_image(args.image)
     results = predict(model, image_tensor, device, top_k=args.top_k)
 
