@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class SEBlock(nn.Module):
     def __init__(self, channels, reduction=16):
-        super(SEBlock, self).__init__()
+        super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
             nn.Linear(channels, channels // reduction, bias=False),
@@ -20,11 +20,11 @@ class SEBlock(nn.Module):
         return x * y.expand_as(x)
 
 
-class SEBottleneck(nn.Module):
+class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, reduction=16):
-        super(SEBottleneck, self).__init__()
+    def __init__(self, inplanes, planes, stride=1, downsample=None, use_se=False, reduction=16):
+        super().__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -32,7 +32,7 @@ class SEBottleneck(nn.Module):
         self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
-        self.se = SEBlock(planes * self.expansion, reduction)
+        self.se = SEBlock(planes * self.expansion, reduction) if use_se else nn.Identity()
         self.downsample = downsample
         self.stride = stride
 
@@ -61,38 +61,40 @@ class SEBottleneck(nn.Module):
         return out
 
 
-class SEResNet50(nn.Module):
-    def __init__(self, num_classes=100, reduction=16):
-        super(SEResNet50, self).__init__()
+class ResNet50(nn.Module):
+    def __init__(self, num_classes=100, use_se=False, reduction=16):
+        super().__init__()
         self.inplanes = 64
+        self.use_se = use_se
+        self.reduction = reduction
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
 
-        self.layer1 = self._make_layer(SEBottleneck, 64, 3, stride=1, reduction=reduction)
-        self.layer2 = self._make_layer(SEBottleneck, 128, 4, stride=2, reduction=reduction)
-        self.layer3 = self._make_layer(SEBottleneck, 256, 6, stride=2, reduction=reduction)
-        self.layer4 = self._make_layer(SEBottleneck, 512, 3, stride=2, reduction=reduction)
+        self.layer1 = self._make_layer(64, 3, stride=1)
+        self.layer2 = self._make_layer(128, 4, stride=2)
+        self.layer3 = self._make_layer(256, 6, stride=2)
+        self.layer4 = self._make_layer(512, 3, stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * SEBottleneck.expansion, num_classes)
+        self.fc = nn.Linear(512 * Bottleneck.expansion, num_classes)
 
         self._initialize_weights()
 
-    def _make_layer(self, block, planes, blocks, stride=1, reduction=16):
+    def _make_layer(self, planes, blocks, stride=1):
         downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion:
+        if stride != 1 or self.inplanes != planes * Bottleneck.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion),
+                nn.Conv2d(self.inplanes, planes * Bottleneck.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * Bottleneck.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, reduction))
-        self.inplanes = planes * block.expansion
+        layers.append(Bottleneck(self.inplanes, planes, stride, downsample, self.use_se, self.reduction))
+        self.inplanes = planes * Bottleneck.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, reduction=reduction))
+            layers.append(Bottleneck(self.inplanes, planes, use_se=self.use_se, reduction=self.reduction))
 
         return nn.Sequential(*layers)
 
@@ -125,5 +127,14 @@ class SEResNet50(nn.Module):
         return x
 
 
+def build_model(model_name: str = "se_resnet50", num_classes: int = 100) -> nn.Module:
+    if model_name == "resnet50":
+        return ResNet50(num_classes=num_classes, use_se=False)
+    elif model_name == "se_resnet50":
+        return ResNet50(num_classes=num_classes, use_se=True)
+    else:
+        raise ValueError(f"Unknown model: {model_name}. Choose from: resnet50, se_resnet50")
+
+
 def build_se_resnet50(num_classes=100):
-    return SEResNet50(num_classes=num_classes)
+    return build_model("se_resnet50", num_classes)
