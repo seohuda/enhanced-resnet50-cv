@@ -10,57 +10,57 @@
 
 ## Project Overview
 
-This project enhances the standard ResNet50 architecture for image classification on CIFAR-100 by applying two key improvement strategies:
+This project implements and compares ResNet50 variants on CIFAR-100 image classification, applying two improvement strategies:
 
-1. **Structural Improvement**: Integrating Squeeze-and-Excitation (SE) attention modules into each Bottleneck block of ResNet50.
-2. **Data-Centric Improvement**: Applying CutMix data augmentation with Soft Label Cross-Entropy Loss during training.
+1. **Structural Improvement**: Integrating Squeeze-and-Excitation (SE) attention modules into each Bottleneck block.
+2. **Data-Centric Improvement**: Applying CutMix data augmentation with Soft Label Cross-Entropy Loss.
 
-The combination of channel-wise attention recalibration (SE-Block) and region-level mixing regularization (CutMix) yields improved generalization and higher classification accuracy compared to the vanilla ResNet50 baseline.
+A full ablation study (4 configurations x 3 seeds) is provided to separately measure the contribution of each technique.
 
-## Key Improvements
+## Key Techniques
 
 ### SE-Block (Squeeze-and-Excitation)
 
-The SE-Block adaptively recalibrates channel-wise feature responses by explicitly modeling interdependencies between channels. It is inserted after the third convolution in each Bottleneck block, before the residual addition.
+The SE-Block adaptively recalibrates channel-wise feature responses by modeling interdependencies between channels. It is inserted after the third convolution in each Bottleneck block, before the residual addition.
 
-**Mechanism:**
 - **Squeeze**: Global Average Pooling compresses spatial dimensions into a channel descriptor.
-- **Excitation**: Two fully-connected layers learn channel-wise attention weights.
-- **Scale**: The original feature map is rescaled by the learned attention weights.
+- **Excitation**: Two FC layers learn channel-wise attention weights.
+- **Scale**: The original feature map is rescaled by the learned weights.
 
 ### CutMix Augmentation
 
-CutMix cuts a random patch from one training image and pastes it onto another, mixing the labels proportionally to the area of the patch. This encourages the model to:
+CutMix cuts a random patch from one training image and pastes it onto another, mixing labels proportionally to the patch area. This encourages the model to focus on less discriminative parts and reduces overfitting.
 
-- Focus on less discriminative parts of objects
-- Improve robustness to occlusion
-- Reduce overfitting through stronger regularization
+## Experiment Design
 
-The training loop uses a Soft Label Cross-Entropy Loss to handle the mixed labels properly.
+### Data Split
 
-## Performance Comparison
+| Split | Size | Usage |
+|-------|------|-------|
+| Train | 45,000 | Model training |
+| Validation | 5,000 | Epoch selection, hyperparameter tuning |
+| Test | 10,000 | Final evaluation (once, after all training) |
 
-| Model | Top-1 Accuracy | Top-5 Accuracy | Parameters |
-|-------|---------------|---------------|------------|
-| ResNet50 (Baseline) | ~72.0% | ~91.0% | 23.7M |
-| SE-ResNet50 (Ours) | ~76.5% | ~93.5% | 26.2M |
-| SE-ResNet50 + CutMix (Ours) | ~78.5% | ~94.5% | 26.2M |
+The validation set is split from CIFAR-100 training data using a fixed seed. The test set is only evaluated after training completes to avoid data leakage.
 
-### Training Curves
+### Ablation Configurations
 
-![Performance Comparison](assets/performance_comparison.png)
+| Experiment | Model | CutMix | Purpose |
+|-----------|-------|--------|---------|
+| Baseline | ResNet50 | Off | Reference performance |
+| CutMix only | ResNet50 | On | Isolate CutMix contribution |
+| SE only | SE-ResNet50 | Off | Isolate SE-Block contribution |
+| SE + CutMix | SE-ResNet50 | On | Combined effect |
 
-## Architecture
+Each configuration is run with 3 seeds (42, 123, 456) and results are reported as mean +/- std.
 
-```
-Input (3x32x32)
-  └── Conv1 (3x3, stride=1) + BN + ReLU
-  └── Layer1: 3x SE-Bottleneck (64)
-  └── Layer2: 4x SE-Bottleneck (128)
-  └── Layer3: 6x SE-Bottleneck (256)
-  └── Layer4: 3x SE-Bottleneck (512)
-  └── AdaptiveAvgPool2d → FC (100 classes)
-```
+### Reproducibility
+
+- Random seeds are fixed (Python, NumPy, PyTorch, CUDA)
+- `torch.backends.cudnn.deterministic = True`
+- All hyperparameters are logged to `config.json` per run
+- Per-epoch metrics are saved to `metrics.csv`
+- Checkpoints include full training state (model, optimizer, scheduler, epoch)
 
 ## How to Run
 
@@ -70,50 +70,115 @@ Input (3x32x32)
 pip install -r requirements.txt
 ```
 
-### Training
+### Single Training Run
 
 ```bash
-python train.py
+python train.py \
+  --model se_resnet50 \
+  --cutmix \
+  --epochs 200 \
+  --seed 42 \
+  --output-dir runs/se_cutmix_seed42
 ```
 
-The script will:
-- Automatically download CIFAR-100 dataset
-- Train SE-ResNet50 with CutMix augmentation for 50 epochs
-- Apply learning rate warmup (5 epochs) followed by cosine annealing
-- Save the best model checkpoint as `best_model.pth`
-- Generate training curves as `training_curves.png`
+### Full Ablation Study
+
+```bash
+./run_experiments.sh
+```
+
+This runs all 4 configurations x 3 seeds (12 training runs total).
+
+### Generate Comparison Plots
+
+```bash
+python plot_results.py --results-dir results
+```
+
+### Resume Training
+
+```bash
+python train.py --resume runs/se_cutmix_seed42/last.pth
+```
 
 ### Inference
 
 ```bash
-python inference.py --image <image_path> --checkpoint best_model.pth --top_k 5
+python inference.py --image <image_path> --checkpoint runs/se_cutmix_seed42/best.pth
 ```
 
-### Configuration
+### CLI Options
 
-Key hyperparameters can be modified in `train.py`:
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--model` | se_resnet50 | Architecture: `resnet50` or `se_resnet50` |
+| `--epochs` | 200 | Total training epochs |
+| `--batch-size` | 128 | Mini-batch size |
+| `--lr` | 0.1 | Initial learning rate |
+| `--cutmix` | off | Enable CutMix augmentation |
+| `--cutmix-prob` | 0.5 | Probability of applying CutMix per batch |
+| `--cutmix-alpha` | 1.0 | Beta distribution parameter |
+| `--seed` | 42 | Random seed for reproducibility |
+| `--output-dir` | runs/default | Output directory for checkpoints and logs |
+| `--resume` | - | Path to checkpoint to resume from |
+| `--amp` | off | Enable automatic mixed precision |
+| `--val-split` | 0.1 | Fraction of training data for validation |
+| `--num-workers` | 4 | DataLoader workers |
+| `--grad-clip` | 1.0 | Max gradient norm |
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `num_epochs` | 50 | Total training epochs |
-| `batch_size` | 128 | Mini-batch size |
-| `learning_rate` | 0.1 | Initial learning rate |
-| `cutmix_prob` | 0.5 | Probability of applying CutMix |
-| `cutmix_alpha` | 1.0 | Beta distribution parameter for CutMix |
+## Architecture
 
-### Project Structure
+```
+Input (3x32x32)
+  +-- Conv1 (3x3, stride=1) + BN + ReLU
+  +-- Layer1: 3x Bottleneck (64)  [+SE if se_resnet50]
+  +-- Layer2: 4x Bottleneck (128) [+SE if se_resnet50]
+  +-- Layer3: 6x Bottleneck (256) [+SE if se_resnet50]
+  +-- Layer4: 3x Bottleneck (512) [+SE if se_resnet50]
+  +-- AdaptiveAvgPool2d -> FC (100 classes)
+```
+
+## Output Structure
+
+After running experiments:
+
+```
+results/
+├── baseline_seed42/
+│   ├── config.json
+│   ├── metrics.csv
+│   ├── summary.json
+│   ├── best.pth
+│   └── last.pth
+├── cutmix_seed42/
+├── se_seed42/
+├── se_cutmix_seed42/
+├── ...  (repeat for seeds 123, 456)
+└── comparison.png
+```
+
+## Tests
+
+```bash
+python3 tests/test_model.py
+```
+
+## Project Structure
 
 ```
 enhanced-resnet50-cv/
-├── model.py          # SE-ResNet50 architecture definition
-├── train.py          # Training pipeline with CutMix
-├── utils.py          # CutMix utilities and loss functions
-├── inference.py      # Single image inference script
-├── requirements.txt  # Package dependencies
-├── assets/           # Training visualization results
-├── .gitignore        # Git ignore rules
-├── README.md         # Project documentation (English)
-└── README_KR.md      # Project documentation (Korean)
+├── model.py             # ResNet50 and SE-ResNet50 architecture
+├── train.py             # Training pipeline with CLI, validation split, logging
+├── utils.py             # CutMix, soft label loss, seed utilities
+├── inference.py         # Single image inference
+├── plot_results.py      # Aggregate results and generate comparison plots
+├── run_experiments.sh   # Full ablation experiment script
+├── tests/
+│   └── test_model.py    # Unit tests for model, CutMix, checkpoints
+├── requirements.txt     # Dependencies
+├── assets/              # Visualization assets
+├── README.md            # English documentation
+└── README_KR.md         # Korean documentation
 ```
 
 ## References
