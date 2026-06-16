@@ -38,11 +38,20 @@ def rand_bbox(size, lam):
 
 class SoftLabelCrossEntropyLoss(nn.Module):
     def __init__(self):
-        super(SoftLabelCrossEntropyLoss, self).__init__()
+        super().__init__()
 
     def forward(self, outputs, targets_a, targets_b, lam):
         log_probs = nn.functional.log_softmax(outputs, dim=1)
         loss_a = nn.functional.nll_loss(log_probs, targets_a)
         loss_b = nn.functional.nll_loss(log_probs, targets_b)
-        loss = lam * loss_a + (1 - lam) * loss_b
-        return loss
+        return lam * loss_a + (1 - lam) * loss_b
+
+
+def set_seed(seed: int):
+    import random
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
