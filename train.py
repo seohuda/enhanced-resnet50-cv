@@ -4,16 +4,16 @@ import json
 import os
 import time
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Subset
 import torchvision
 import torchvision.transforms as transforms
-import numpy as np
+from torch.utils.data import DataLoader, Subset
 
 from model import build_model
-from utils import cutmix_data, SoftLabelCrossEntropyLoss, set_seed
+from utils import SoftLabelCrossEntropyLoss, cutmix_data, set_seed
 
 
 def parse_args():

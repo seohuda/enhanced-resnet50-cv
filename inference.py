@@ -1,10 +1,11 @@
+import argparse
+import os
+
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
-import argparse
-import os
-from model import build_model
 
+from model import build_model
 
 CIFAR100_CLASSES = [
     'apple', 'aquarium_fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle',

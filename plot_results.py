@@ -7,7 +7,6 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 EXPERIMENT_LABELS = {
     "baseline": "ResNet50",
     "cutmix": "ResNet50 + CutMix",

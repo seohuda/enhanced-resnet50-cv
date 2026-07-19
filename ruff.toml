@@ -1,0 +1,7 @@
+line-length = 120
+target-version = "py310"
+exclude = ["data", "runs", "results", "*.egg-info"]
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
