@@ -1,0 +1,4 @@
+model: se_resnet50
+epochs: 200
+seed: 42
+output-dir: results/se_seed42

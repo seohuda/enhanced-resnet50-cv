@@ -14,6 +14,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Subset
 
+from config import load_config, merge_config
 from model import build_model
 from utils import SoftLabelCrossEntropyLoss, cutmix_data, set_seed
 
@@ -36,8 +37,10 @@ def setup_logging(output_dir: str) -> logging.Logger:
     return logger
 
 
-def parse_args() -> argparse.Namespace:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Train ResNet50 variants on CIFAR-100")
+    parser.add_argument("--config", type=str, default=None,
+                        help="Path to a YAML config file (CLI flags override YAML values)")
     parser.add_argument("--model", type=str, default="se_resnet50",
                         choices=["resnet50", "se_resnet50"],
                         help="Model architecture")
@@ -58,7 +61,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--val-split", type=float, default=0.1,
                         help="Fraction of training data to use for validation")
     parser.add_argument("--grad-clip", type=float, default=1.0)
-    return parser.parse_args()
+    return parser
+
+
+def parse_args() -> argparse.Namespace:
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.config:
+        defaults = parser.parse_args([])
+        yaml_dict = load_config(args.config)
+        args = merge_config(args, defaults, yaml_dict)
+    return args
 
 
 def get_dataloaders(

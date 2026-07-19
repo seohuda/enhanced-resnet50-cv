@@ -1,0 +1,5 @@
+model: se_resnet50
+cutmix: true
+epochs: 200
+seed: 42
+output-dir: results/se_cutmix_seed42

@@ -1,0 +1,4 @@
+model: resnet50
+epochs: 200
+seed: 42
+output-dir: results/baseline_seed42
