@@ -1,6 +1,7 @@
 import argparse
 import csv
 import json
+import logging
 import os
 import time
 from typing import Optional, Tuple
@@ -15,6 +16,24 @@ from torch.utils.data import DataLoader, Subset
 
 from model import build_model
 from utils import SoftLabelCrossEntropyLoss, cutmix_data, set_seed
+
+
+def setup_logging(output_dir: str) -> logging.Logger:
+    logger = logging.getLogger("train")
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+
+    formatter = logging.Formatter("%(message)s")
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    file_handler = logging.FileHandler(os.path.join(output_dir, "train.log"))
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    return logger
 
 
 def parse_args() -> argparse.Namespace:
@@ -196,21 +215,22 @@ def main() -> None:
     set_seed(args.seed)
 
     os.makedirs(args.output_dir, exist_ok=True)
+    logger = setup_logging(args.output_dir)
 
     config = vars(args)
     with open(os.path.join(args.output_dir, "config.json"), "w") as f:
         json.dump(config, f, indent=2)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Device: {device}")
-    print(f"Model: {args.model} | CutMix: {args.cutmix} | Seed: {args.seed}")
+    logger.info(f"Device: {device}")
+    logger.info(f"Model: {args.model} | CutMix: {args.cutmix} | Seed: {args.seed}")
 
     train_loader, val_loader, test_loader = get_dataloaders(args, device)
-    print(f"Train: {len(train_loader.dataset)} | Val: {len(val_loader.dataset)} | Test: {len(test_loader.dataset)}")
+    logger.info(f"Train: {len(train_loader.dataset)} | Val: {len(val_loader.dataset)} | Test: {len(test_loader.dataset)}")
 
     model = build_model(args.model, num_classes=100).to(device)
     num_params = sum(p.numel() for p in model.parameters())
-    print(f"Parameters: {num_params:,}")
+    logger.info(f"Parameters: {num_params:,}")
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     warmup_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=args.warmup_epochs)
@@ -226,7 +246,7 @@ def main() -> None:
 
     if args.resume:
         if os.path.isfile(args.resume):
-            print(f"Resuming from: {args.resume}")
+            logger.info(f"Resuming from: {args.resume}")
             checkpoint = torch.load(args.resume, map_location=device)
             model.load_state_dict(checkpoint["model_state_dict"])
             optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -235,9 +255,9 @@ def main() -> None:
             best_val_acc = checkpoint.get("best_val_acc", 0.0)
             if scaler is not None and "scaler_state_dict" in checkpoint:
                 scaler.load_state_dict(checkpoint["scaler_state_dict"])
-            print(f"Resumed at epoch {start_epoch}, best_val_acc={best_val_acc:.2f}%")
+            logger.info(f"Resumed at epoch {start_epoch}, best_val_acc={best_val_acc:.2f}%")
         else:
-            print(f"Checkpoint not found: {args.resume}")
+            logger.info(f"Checkpoint not found: {args.resume}")
             return
 
     csv_path = os.path.join(args.output_dir, "metrics.csv")
@@ -247,8 +267,8 @@ def main() -> None:
     if not csv_exists:
         csv_writer.writerow(["epoch", "train_loss", "train_acc", "val_loss", "val_top1", "val_top5", "lr", "time_s"])
 
-    print(f"\n{'Epoch':>5} {'TrLoss':>7} {'TrAcc':>6} {'VaLoss':>7} {'VaTop1':>6} {'VaTop5':>6} {'LR':>8}")
-    print("-" * 55)
+    logger.info(f"\n{'Epoch':>5} {'TrLoss':>7} {'TrAcc':>6} {'VaLoss':>7} {'VaTop1':>6} {'VaTop5':>6} {'LR':>8}")
+    logger.info("-" * 55)
 
     for epoch in range(start_epoch, args.epochs + 1):
         t0 = time.time()
@@ -265,8 +285,8 @@ def main() -> None:
                              f"{lr:.6f}", f"{elapsed:.1f}"])
         csv_file.flush()
 
-        print(f"{epoch:>5d} {train_loss:>7.4f} {train_acc:>6.2f} {val_loss:>7.4f} "
-              f"{val_top1:>6.2f} {val_top5:>6.2f} {lr:>8.6f}")
+        logger.info(f"{epoch:>5d} {train_loss:>7.4f} {train_acc:>6.2f} {val_loss:>7.4f} "
+                    f"{val_top1:>6.2f} {val_top5:>6.2f} {lr:>8.6f}")
 
         checkpoint_state = {
             "epoch": epoch,
@@ -289,15 +309,15 @@ def main() -> None:
 
     csv_file.close()
 
-    print(f"\nBest Validation Top-1: {best_val_acc:.2f}%")
-    print("\nEvaluating on test set (final evaluation)...")
+    logger.info(f"\nBest Validation Top-1: {best_val_acc:.2f}%")
+    logger.info("\nEvaluating on test set (final evaluation)...")
     test_loss, test_top1, test_top5 = evaluate(model, test_loader, device, args.amp)
-    print(f"Test Top-1: {test_top1:.2f}% | Test Top-5: {test_top5:.2f}%")
+    logger.info(f"Test Top-1: {test_top1:.2f}% | Test Top-5: {test_top5:.2f}%")
 
     best_ckpt = torch.load(os.path.join(args.output_dir, "best.pth"), map_location=device)
     model.load_state_dict(best_ckpt["model_state_dict"])
     test_loss_best, test_top1_best, test_top5_best = evaluate(model, test_loader, device, args.amp)
-    print(f"Test Top-1 (best ckpt): {test_top1_best:.2f}% | Test Top-5: {test_top5_best:.2f}%")
+    logger.info(f"Test Top-1 (best ckpt): {test_top1_best:.2f}% | Test Top-5: {test_top5_best:.2f}%")
 
     summary = {
         "model": args.model,
@@ -314,7 +334,7 @@ def main() -> None:
     with open(os.path.join(args.output_dir, "summary.json"), "w") as f:
         json.dump(summary, f, indent=2)
 
-    print(f"\nResults saved to: {args.output_dir}/")
+    logger.info(f"\nResults saved to: {args.output_dir}/")
 
 
 if __name__ == "__main__":
