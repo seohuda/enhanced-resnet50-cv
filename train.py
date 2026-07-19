@@ -3,6 +3,7 @@ import csv
 import json
 import os
 import time
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -16,7 +17,7 @@ from model import build_model
 from utils import SoftLabelCrossEntropyLoss, cutmix_data, set_seed
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train ResNet50 variants on CIFAR-100")
     parser.add_argument("--model", type=str, default="se_resnet50",
                         choices=["resnet50", "se_resnet50"],
@@ -41,7 +42,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_dataloaders(args, device):
+def get_dataloaders(
+    args: argparse.Namespace, device: torch.device
+) -> Tuple[DataLoader, DataLoader, DataLoader]:
     train_transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -97,7 +100,14 @@ def get_dataloaders(args, device):
     return train_loader, val_loader, test_loader
 
 
-def train_one_epoch(model, train_loader, optimizer, device, args, scaler=None):
+def train_one_epoch(
+    model: nn.Module,
+    train_loader: DataLoader,
+    optimizer: optim.Optimizer,
+    device: torch.device,
+    args: argparse.Namespace,
+    scaler: Optional[torch.amp.GradScaler] = None,
+) -> Tuple[float, float]:
     model.train()
     running_loss = 0.0
     correct = 0
@@ -144,7 +154,9 @@ def train_one_epoch(model, train_loader, optimizer, device, args, scaler=None):
     return epoch_loss, epoch_acc
 
 
-def evaluate(model, loader, device, amp_enabled=False):
+def evaluate(
+    model: nn.Module, loader: DataLoader, device: torch.device, amp_enabled: bool = False
+) -> Tuple[float, float, float]:
     model.eval()
     running_loss = 0.0
     correct_top1 = 0
@@ -173,12 +185,12 @@ def evaluate(model, loader, device, amp_enabled=False):
     return epoch_loss, top1_acc, top5_acc
 
 
-def save_checkpoint(state, filepath):
+def save_checkpoint(state: dict, filepath: str) -> None:
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     torch.save(state, filepath)
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     set_seed(args.seed)

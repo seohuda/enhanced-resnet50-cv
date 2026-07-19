@@ -1,9 +1,13 @@
+from typing import Tuple
+
 import numpy as np
 import torch
 import torch.nn as nn
 
 
-def cutmix_data(x, y, alpha=1.0):
+def cutmix_data(
+    x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
     lam = np.random.beta(alpha, alpha)
     batch_size = x.size(0)
     index = torch.randperm(batch_size).to(x.device)
@@ -18,7 +22,7 @@ def cutmix_data(x, y, alpha=1.0):
     return x, y_a, y_b, lam
 
 
-def rand_bbox(size, lam):
+def rand_bbox(size: torch.Size, lam: float) -> Tuple[int, int, int, int]:
     W = size[2]
     H = size[3]
     cut_rat = np.sqrt(1.0 - lam)
@@ -37,17 +41,23 @@ def rand_bbox(size, lam):
 
 
 class SoftLabelCrossEntropyLoss(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def forward(self, outputs, targets_a, targets_b, lam):
+    def forward(
+        self,
+        outputs: torch.Tensor,
+        targets_a: torch.Tensor,
+        targets_b: torch.Tensor,
+        lam: float,
+    ) -> torch.Tensor:
         log_probs = nn.functional.log_softmax(outputs, dim=1)
         loss_a = nn.functional.nll_loss(log_probs, targets_a)
         loss_b = nn.functional.nll_loss(log_probs, targets_b)
         return lam * loss_a + (1 - lam) * loss_b
 
 
-def set_seed(seed: int):
+def set_seed(seed: int) -> None:
     import random
     random.seed(seed)
     np.random.seed(seed)

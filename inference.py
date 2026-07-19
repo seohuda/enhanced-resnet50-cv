@@ -1,7 +1,9 @@
 import argparse
 import os
+from typing import List, Tuple
 
 import torch
+import torch.nn as nn
 import torchvision.transforms as transforms
 from PIL import Image
 
@@ -26,7 +28,9 @@ CIFAR100_CLASSES = [
 ]
 
 
-def load_model(checkpoint_path, device, model_name="se_resnet50"):
+def load_model(
+    checkpoint_path: str, device: torch.device, model_name: str = "se_resnet50"
+) -> nn.Module:
     checkpoint = torch.load(checkpoint_path, map_location=device)
     if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
         config = checkpoint.get("config", {})
@@ -41,7 +45,7 @@ def load_model(checkpoint_path, device, model_name="se_resnet50"):
     return model
 
 
-def preprocess_image(image_path):
+def preprocess_image(image_path: str) -> torch.Tensor:
     transform = transforms.Compose([
         transforms.Resize((32, 32)),
         transforms.ToTensor(),
@@ -51,7 +55,9 @@ def preprocess_image(image_path):
     return transform(image).unsqueeze(0)
 
 
-def predict(model, image_tensor, device, top_k=5):
+def predict(
+    model: nn.Module, image_tensor: torch.Tensor, device: torch.device, top_k: int = 5
+) -> List[Tuple[str, float]]:
     image_tensor = image_tensor.to(device)
     with torch.no_grad():
         outputs = model(image_tensor)
@@ -67,7 +73,7 @@ def predict(model, image_tensor, device, top_k=5):
     return results
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description='ResNet50/SE-ResNet50 Inference on CIFAR-100')
     parser.add_argument('--image', type=str, required=True, help='Path to input image')
     parser.add_argument('--checkpoint', type=str, default='best_model.pth', help='Path to model checkpoint')

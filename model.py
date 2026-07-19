@@ -1,9 +1,11 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
 
 class SEBlock(nn.Module):
-    def __init__(self, channels, reduction=16):
+    def __init__(self, channels: int, reduction: int = 16) -> None:
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
@@ -13,7 +15,7 @@ class SEBlock(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
@@ -23,7 +25,15 @@ class SEBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, use_se=False, reduction=16):
+    def __init__(
+        self,
+        inplanes: int,
+        planes: int,
+        stride: int = 1,
+        downsample: Optional[nn.Module] = None,
+        use_se: bool = False,
+        reduction: int = 16,
+    ) -> None:
         super().__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
@@ -36,7 +46,7 @@ class Bottleneck(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         residual = x
 
         out = self.conv1(x)
@@ -62,7 +72,7 @@ class Bottleneck(nn.Module):
 
 
 class ResNet50(nn.Module):
-    def __init__(self, num_classes=100, use_se=False, reduction=16):
+    def __init__(self, num_classes: int = 100, use_se: bool = False, reduction: int = 16) -> None:
         super().__init__()
         self.inplanes = 64
         self.use_se = use_se
@@ -82,7 +92,7 @@ class ResNet50(nn.Module):
 
         self._initialize_weights()
 
-    def _make_layer(self, planes, blocks, stride=1):
+    def _make_layer(self, planes: int, blocks: int, stride: int = 1) -> nn.Sequential:
         downsample = None
         if stride != 1 or self.inplanes != planes * Bottleneck.expansion:
             downsample = nn.Sequential(
@@ -98,7 +108,7 @@ class ResNet50(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def _initialize_weights(self):
+    def _initialize_weights(self) -> None:
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -110,7 +120,7 @@ class ResNet50(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -136,5 +146,5 @@ def build_model(model_name: str = "se_resnet50", num_classes: int = 100) -> nn.M
         raise ValueError(f"Unknown model: {model_name}. Choose from: resnet50, se_resnet50")
 
 
-def build_se_resnet50(num_classes=100):
+def build_se_resnet50(num_classes: int = 100) -> nn.Module:
     return build_model("se_resnet50", num_classes)
