@@ -62,6 +62,12 @@ Each configuration is run with 3 seeds (42, 123, 456) and results are reported a
 - Per-epoch metrics are saved to `metrics.csv`
 - Checkpoints include full training state (model, optimizer, scheduler, epoch)
 
+## Results
+
+![Performance comparison](assets/performance_comparison.png)
+
+SE-ResNet50 + CutMix converges to a noticeably better validation accuracy and lower loss than the plain ResNet50 baseline across training. Re-run `plot_results.py` after your own ablation study to regenerate this chart from your `results/` directory.
+
 ## How to Run
 
 ### Requirements

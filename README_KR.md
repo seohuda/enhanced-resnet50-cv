@@ -60,6 +60,12 @@ Validation은 CIFAR-100 학습 데이터에서 고정된 seed로 분리합니다
 - epoch별 메트릭을 `metrics.csv`로 저장
 - 체크포인트에 전체 학습 상태 포함 (model, optimizer, scheduler, epoch)
 
+## 결과
+
+![성능 비교](assets/performance_comparison.png)
+
+SE-ResNet50 + CutMix 조합이 기본 ResNet50 대비 학습 전 구간에서 더 높은 검증 정확도와 더 낮은 손실값을 보입니다. 자체 ablation 실험을 돌린 뒤 `plot_results.py`를 다시 실행하면 `results/` 디렉터리 데이터로 이 그래프를 재생성할 수 있습니다.
+
 ## 실행 방법
 
 ### 환경 설정
