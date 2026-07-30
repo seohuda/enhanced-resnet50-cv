@@ -22,7 +22,9 @@ from utils import SoftLabelCrossEntropyLoss, cutmix_data, set_seed
 def setup_logging(output_dir: str) -> logging.Logger:
     logger = logging.getLogger("train")
     logger.setLevel(logging.INFO)
-    logger.handlers.clear()
+    for handler in logger.handlers[:]:
+        handler.close()
+        logger.removeHandler(handler)
 
     formatter = logging.Formatter("%(message)s")
 
