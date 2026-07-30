@@ -66,13 +66,19 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def explicit_cli_keys() -> set:
+    probe = build_parser()
+    for action in probe._actions:
+        action.default = argparse.SUPPRESS
+    return set(vars(probe.parse_args()).keys())
+
+
 def parse_args() -> argparse.Namespace:
     parser = build_parser()
     args = parser.parse_args()
     if args.config:
-        defaults = parser.parse_args([])
         yaml_dict = load_config(args.config)
-        args = merge_config(args, defaults, yaml_dict)
+        args = merge_config(args, explicit_cli_keys(), yaml_dict)
     return args
 
 

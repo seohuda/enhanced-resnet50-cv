@@ -23,8 +23,7 @@ def test_load_config_reads_yaml(tmp_path):
 def test_merge_config_yaml_fills_unset_cli_args():
     parser = make_parser()
     args = parser.parse_args([])
-    defaults = parser.parse_args([])
-    merged = merge_config(args, defaults, {"model": "resnet50", "epochs": 50})
+    merged = merge_config(args, set(), {"model": "resnet50", "epochs": 50})
     assert merged.model == "resnet50"
     assert merged.epochs == 50
 
@@ -32,23 +31,27 @@ def test_merge_config_yaml_fills_unset_cli_args():
 def test_merge_config_cli_overrides_yaml():
     parser = make_parser()
     args = parser.parse_args(["--epochs", "999"])
-    defaults = parser.parse_args([])
-    merged = merge_config(args, defaults, {"model": "resnet50", "epochs": 50})
+    merged = merge_config(args, {"epochs"}, {"model": "resnet50", "epochs": 50})
     assert merged.model == "resnet50"
     assert merged.epochs == 999
+
+
+def test_merge_config_cli_value_matching_default_is_not_overridden():
+    parser = make_parser()
+    args = parser.parse_args(["--epochs", "50"])
+    merged = merge_config(args, {"epochs"}, {"model": "resnet50", "epochs": 999})
+    assert merged.epochs == 50
 
 
 def test_merge_config_applies_yaml_store_true_flag():
     parser = make_parser()
     args = parser.parse_args([])
-    defaults = parser.parse_args([])
-    merged = merge_config(args, defaults, {"cutmix": True})
+    merged = merge_config(args, set(), {"cutmix": True})
     assert merged.cutmix is True
 
 
 def test_merge_config_rejects_unknown_key():
     parser = make_parser()
     args = parser.parse_args([])
-    defaults = parser.parse_args([])
     with pytest.raises(ValueError):
-        merge_config(args, defaults, {"nonexistent_flag": 1})
+        merge_config(args, set(), {"nonexistent_flag": 1})

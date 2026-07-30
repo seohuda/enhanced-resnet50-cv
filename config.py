@@ -1,5 +1,5 @@
 import argparse
-from typing import Any, Dict
+from typing import Any, Dict, Set
 
 import yaml
 
@@ -12,17 +12,16 @@ def load_config(path: str) -> Dict[str, Any]:
 
 def merge_config(
     args: argparse.Namespace,
-    defaults: argparse.Namespace,
+    explicit_keys: Set[str],
     yaml_dict: Dict[str, Any],
 ) -> argparse.Namespace:
     merged = vars(args)
-    default_values = vars(defaults)
 
     for key, value in yaml_dict.items():
         dest = key.replace("-", "_")
         if dest not in merged:
             raise ValueError(f"Unknown config key: {key}")
-        if merged[dest] == default_values.get(dest):
+        if dest not in explicit_keys:
             merged[dest] = value
 
     return argparse.Namespace(**merged)
