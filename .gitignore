@@ -23,6 +23,8 @@ ENV/
 
 *.log
 *.csv
+!results/**/metrics.csv
+!results/**/train.log
 
 .idea/
 .vscode/

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+from datetime import datetime
 from typing import Optional, Tuple
 
 import numpy as np
@@ -243,7 +244,9 @@ def main() -> None:
         json.dump(config, f, indent=2)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info(f"Device: {device}")
+    gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
+    logger.info(f"Started: {datetime.now().isoformat(timespec='seconds')}")
+    logger.info(f"Device: {device} ({gpu_name})")
     logger.info(f"Model: {args.model} | CutMix: {args.cutmix} | Seed: {args.seed}")
 
     train_loader, val_loader, test_loader = get_dataloaders(args, device)
@@ -356,6 +359,7 @@ def main() -> None:
         json.dump(summary, f, indent=2)
 
     logger.info(f"\nResults saved to: {args.output_dir}/")
+    logger.info(f"Finished: {datetime.now().isoformat(timespec='seconds')}")
 
 
 if __name__ == "__main__":
