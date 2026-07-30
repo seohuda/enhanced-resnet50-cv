@@ -64,7 +64,14 @@ Validation은 CIFAR-100 학습 데이터에서 고정된 seed로 분리합니다
 
 ![성능 비교](assets/performance_comparison.png)
 
-SE-ResNet50 + CutMix 조합이 기본 ResNet50 대비 학습 전 구간에서 더 높은 검증 정확도와 더 낮은 손실값을 보입니다. 자체 ablation 실험을 돌린 뒤 `plot_results.py`를 다시 실행하면 `results/` 디렉터리 데이터로 이 그래프를 재생성할 수 있습니다.
+15 epoch 단축 실행(단일 시드, 위에서 설명한 200 epoch/3 시드 전체 ablation은 아님) 기준 ResNet50 대 SE-ResNet50 + CutMix 비교:
+
+| 모델 | Val Top-1 | Test Top-1 | Test Top-5 | 파라미터 |
+|------|-----------|------------|------------|----------|
+| ResNet50 | 66.22% | 67.12% | 91.12% | 23.7M |
+| SE-ResNet50 + CutMix | 64.64% | 65.39% | 90.34% | 26.2M |
+
+이렇게 짧은 구간에서는 baseline이 아직 근소하게 앞서 있습니다 — CutMix는 초반 정확도를 다소 희생하는 대신 더 강한 정규화 효과를 주기 때문에, 200 epoch까지 학습하면 이 격차가 줄어들거나 역전될 가능성이 높습니다. 전체 ablation 실험을 돌린 뒤 `plot_results.py`를 다시 실행하면 자체 `results/` 데이터로 이 그래프를 재생성할 수 있습니다.
 
 ## 실행 방법
 

@@ -66,7 +66,14 @@ Each configuration is run with 3 seeds (42, 123, 456) and results are reported a
 
 ![Performance comparison](assets/performance_comparison.png)
 
-SE-ResNet50 + CutMix converges to a noticeably better validation accuracy and lower loss than the plain ResNet50 baseline across training. Re-run `plot_results.py` after your own ablation study to regenerate this chart from your `results/` directory.
+Short 15-epoch run (single seed, not the full 200-epoch/3-seed ablation described above) comparing ResNet50 against SE-ResNet50 + CutMix:
+
+| Model | Val Top-1 | Test Top-1 | Test Top-5 | Params |
+|-------|-----------|------------|------------|--------|
+| ResNet50 | 66.22% | 67.12% | 91.12% | 23.7M |
+| SE-ResNet50 + CutMix | 64.64% | 65.39% | 90.34% | 26.2M |
+
+At this short horizon the baseline is still slightly ahead — CutMix trades faster early accuracy for stronger regularization that tends to pay off over longer training, so this gap is expected to close or reverse by epoch 200. Re-run `plot_results.py` after a full ablation study to regenerate this chart with your own `results/` directory.
 
 ## How to Run
 

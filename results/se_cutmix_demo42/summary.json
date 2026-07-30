@@ -1,0 +1,12 @@
+{
+  "model": "se_resnet50",
+  "use_cutmix": true,
+  "seed": 42,
+  "epochs": 15,
+  "best_val_top1": 64.64,
+  "test_top1_last": 65.39,
+  "test_top5_last": 90.34,
+  "test_top1_best": 65.39,
+  "test_top5_best": 90.34,
+  "num_params": 26220196
+}
