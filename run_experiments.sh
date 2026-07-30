@@ -17,6 +17,7 @@ for SEED in $SEEDS; do
         --model resnet50 \
         --epochs $EPOCHS \
         --seed $SEED \
+        --amp \
         --output-dir "${OUTPUT_BASE}/baseline_seed${SEED}"
 
     echo "[2/4] ResNet50 + CutMix"
@@ -25,6 +26,7 @@ for SEED in $SEEDS; do
         --cutmix \
         --epochs $EPOCHS \
         --seed $SEED \
+        --amp \
         --output-dir "${OUTPUT_BASE}/cutmix_seed${SEED}"
 
     echo "[3/4] SE-ResNet50"
@@ -32,6 +34,7 @@ for SEED in $SEEDS; do
         --model se_resnet50 \
         --epochs $EPOCHS \
         --seed $SEED \
+        --amp \
         --output-dir "${OUTPUT_BASE}/se_seed${SEED}"
 
     echo "[4/4] SE-ResNet50 + CutMix"
@@ -40,6 +43,7 @@ for SEED in $SEEDS; do
         --cutmix \
         --epochs $EPOCHS \
         --seed $SEED \
+        --amp \
         --output-dir "${OUTPUT_BASE}/se_cutmix_seed${SEED}"
 
     echo ""
