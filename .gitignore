@@ -29,6 +29,9 @@ ENV/
 *.swp
 *.swo
 
+.coverage
+.pytest_cache/
+
 data/
 outputs/
 wandb/
