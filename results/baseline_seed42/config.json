@@ -13,7 +13,7 @@
   "seed": 42,
   "num_workers": 4,
   "output_dir": "results/baseline_seed42",
-  "resume": null,
+  "resume": "results/baseline_seed42/last.pth",
   "amp": true,
   "val_split": 0.1,
   "grad_clip": 1.0
